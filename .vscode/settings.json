@@ -1,0 +1,5 @@
+{
+    "python.terminal.launchArgs": [],
+    "python.envFile": "${workspaceFolder}/venv",
+    "python.autoComplete.extraPaths": []
+}

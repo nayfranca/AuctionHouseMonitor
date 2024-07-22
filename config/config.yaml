@@ -1,0 +1,6 @@
+# config/config.yaml
+
+download_dir: "/data/raw"  # Replace with the desired download directory path
+gcp_bucket: "auction-house-monitor-storage"            # Replace with the name of your GCP bucket
+estados:                           # List of states to process
+  - MG
