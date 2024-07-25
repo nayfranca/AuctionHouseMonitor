@@ -1,36 +1,18 @@
 import yaml
 import os
 import tempfile
+from datetime import datetime
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 from load import Loader
+from transform import Transformer
 
 class Extractor:
     """
     A class to handle the extraction of real estate auction data from Caixa's website.
-
-    Attributes:
-    ----------
-    config : dict
-        Configuration loaded from the YAML file.
-    chrome_options : webdriver.ChromeOptions
-        Options for the Chrome WebDriver.
-    driver : webdriver.Chrome
-        Instance of the Chrome WebDriver.
-    loader : Loader
-        Instance of the Loader class to upload files to GCS.
-    
-    Methods:
-    -------
-    __init__(self, config_path):
-        Initializes the Extractor with configurations from a YAML file.
-    configure_driver(self):
-        Configures the Chrome WebDriver options.
-    download_data(self, state_code):
-        Downloads data for a specific state and uploads it to GCS.
     """
 
     def __init__(self, config_path):
@@ -46,6 +28,7 @@ class Extractor:
             self.config = yaml.safe_load(file)
         self.download_dir = tempfile.mkdtemp()  # Use temporary directory
         self.loader = Loader(config_path=config_path)
+        self.transformer = Transformer(config_path=config_path)
         self.configure_driver()
 
     def configure_driver(self):
@@ -105,10 +88,21 @@ class Extractor:
             for file_name in os.listdir(self.download_dir):
                 if file_name.endswith('.csv'):
                     file_path = os.path.join(self.download_dir, file_name)
-                    destination_path = f"data/raw/{file_name}"
-                    self.loader.upload_to_gcp(file_path, destination_path)
+                    
+                    # Add extraction date to the file name
+                    extraction_date = datetime.now().strftime('%d_%m_%Y')
+                    new_file_name = f"{os.path.splitext(file_name)[0]}_{extraction_date}.csv"
+                    raw_destination_path = f"data/raw/{new_file_name}"
+
+                    # Upload raw file to GCS
+                    self.loader.upload_to_gcp(file_path, raw_destination_path)
+
+                    # Process the file using Transformer and upload the transformed file to GCS
+                    transformed_file_path = self.transformer.transform_data(raw_destination_path)
+                    integrated_destination_path = f"data/integrated/{file_name}"
+                    self.loader.upload_to_gcp(transformed_file_path, integrated_destination_path)
             
-            print("File downloaded and uploaded successfully!")
+            print("File downloaded, uploaded, and processed successfully!")
         
         finally:
             self.driver.quit()

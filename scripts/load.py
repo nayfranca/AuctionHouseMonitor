@@ -1,26 +1,11 @@
 import os
 from google.cloud import storage
 import yaml
+import pandas as pd
 
 class Loader:
     """
     A class to handle the loading of extracted data to Google Cloud Storage.
-
-    Attributes:
-    ----------
-    config : dict
-        Configuration loaded from the YAML file.
-    client : storage.Client
-        Google Cloud Storage client.
-    bucket_name : str
-        Name of the Google Cloud Storage bucket.
-    
-    Methods:
-    -------
-    __init__(self, config_path):
-        Initializes the Loader with configurations from a YAML file.
-    upload_to_gcp(self, file_path, destination_path):
-        Uploads a file to the specified Google Cloud Storage bucket at the specified destination path.
     """
 
     def __init__(self, config_path):
@@ -52,6 +37,38 @@ class Loader:
         blob = bucket.blob(destination_path)
         blob.upload_from_filename(file_path)
         print(f"File {file_path} uploaded to bucket {self.bucket_name} at {destination_path}.")
+
+    def download_from_gcp(self, source_path, destination_path):
+        """
+        Downloads a file from the specified Google Cloud Storage bucket to the local destination path.
+
+        Parameters:
+        ----------
+        source_path : str
+            Path within the bucket to the file to be downloaded.
+        destination_path : str
+            Local path where the file should be downloaded.
+        """
+        bucket = self.client.bucket(self.bucket_name)
+        blob = bucket.blob(source_path)
+        blob.download_to_filename(destination_path)
+        print(f"File {source_path} downloaded from bucket {self.bucket_name} to {destination_path}.")
+
+    def read_data(self, file_path):
+        """
+        Reads data from a CSV file into a Pandas DataFrame.
+
+        Parameters:
+        ----------
+        file_path : str
+            Path to the CSV file to be read.
+        
+        Returns:
+        -------
+        pd.DataFrame
+            DataFrame containing the data from the CSV file.
+        """
+        return pd.read_csv(file_path)
 
 
 if __name__ == "__main__":
