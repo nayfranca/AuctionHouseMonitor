@@ -1,4 +1,5 @@
 import os
+import io 
 from google.cloud import storage
 import yaml
 import pandas as pd
@@ -69,6 +70,36 @@ class Loader:
             DataFrame containing the data from the CSV file.
         """
         return pd.read_csv(file_path)
+    
+    def read_csv_from_gcp(self, source_path):
+        """
+        Reads a CSV file directly from the specified Google Cloud Storage bucket and returns a DataFrame.
+
+        Parameters:
+        ----------
+        source_path : str
+            Path within the bucket to the file to be read.
+
+        Returns:
+        -------
+        pd.DataFrame
+            DataFrame containing the data from the CSV file.
+        """
+        bucket = self.client.bucket(self.bucket_name)
+        blob = bucket.blob(source_path)
+        data = blob.download_as_text()
+        
+        # Leia os dados como um DataFrame sem cabeçalhos e pule a primeira linha que contém o cabeçalho atual
+        df = pd.read_csv(io.StringIO(data), sep=',', header=None, skiprows=1)
+        
+        # Defina a primeira linha lida (agora no índice 0) como cabeçalho do DataFrame
+        df.columns = df.iloc[0]
+        df = df.drop(df.index[0])  # Remove a linha que agora serve como cabeçalho
+        
+        # Resetar o índice após as modificações
+        df.reset_index(drop=True, inplace=True)
+        
+        return df
 
 
 if __name__ == "__main__":
@@ -79,3 +110,4 @@ if __name__ == "__main__":
         if file_name.endswith('.csv'):
             file_path = os.path.join(raw_data_dir, file_name)
             loader.upload_to_gcp(file_path)
+

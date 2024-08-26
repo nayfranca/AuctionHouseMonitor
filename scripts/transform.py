@@ -30,17 +30,22 @@ class Transformer:
         temp_file_path = '/tmp/temp.csv'
         self.loader.download_from_gcp(source_path, temp_file_path)
         
-        # Read data with the specified encoding
+        # Tenta ler os dados, definindo a primeira linha como cabeçalhos e tratando possíveis erros
         try:
-            data = pd.read_csv(temp_file_path, encoding='utf-8', on_bad_lines='skip')
+            # Leia o arquivo sem considerar a primeira linha como cabeçalho
+            data = pd.read_csv(temp_file_path, encoding='utf-8', sep=';', header=None, skiprows=1, on_bad_lines='warn')
         except UnicodeDecodeError:
-            data = pd.read_csv(temp_file_path, encoding='latin1', on_bad_lines='skip')
+            data = pd.read_csv(temp_file_path, encoding='latin1', sep=';', header=None, skiprows=1, on_bad_lines='warn')
         except pd.errors.ParserError as e:
             print(f"ParserError: {e}")
             return None
         
-        # Remove blank lines
-        data.dropna(inplace=True)
+        # Definindo a primeira linha de dados como cabeçalho
+        data.columns = data.iloc[0]
+        data = data[1:]
+
+        # Resetar o índice do DataFrame após redefinir os cabeçalhos
+        data.reset_index(drop=True, inplace=True)
         
         # Save the transformed data to a temporary file
         transformed_file_path = '/tmp/transformed.csv'
